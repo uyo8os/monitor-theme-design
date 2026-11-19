@@ -550,7 +550,7 @@ export default function App() {
         <div className={cn(CONTAINER_CLASS, "flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-5 text-xs text-muted-foreground")}>
           <span>
             {site} · Powered by{" "}
-            <a href="https://github.com/monitor-probe/monitor" target="_blank" rel="noreferrer" className="font-medium hover:text-foreground">
+            <a href="https://github.com/uyo8os/monitor" target="_blank" rel="noreferrer" className="font-medium hover:text-foreground">
               monitor
             </a>
           </span>

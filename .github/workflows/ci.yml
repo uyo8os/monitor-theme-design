@@ -14,8 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # The only gate a tag receives: a hub installs the released archive as built,
-  # so nothing checks the source after release.yml has run.
+  # The release workflow runs the same checks before publishing a theme.
   build:
     runs-on: ubuntu-latest
     steps:
