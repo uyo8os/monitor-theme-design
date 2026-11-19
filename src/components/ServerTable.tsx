@@ -47,13 +47,13 @@ const COL = {
   os: "w-28 text-center @max-5xl:hidden",
   uptime: "w-20 text-center @max-3xl:hidden",
   expiry: "w-20 text-center @max-5xl:hidden",
-  load: "w-16 text-center @max-3xl:hidden",
+  connections: "w-32 text-center @max-3xl:hidden",
   speed: "min-w-28 text-center @max-3xl:w-[15%] @max-3xl:min-w-0 @max-sm:w-[16%] overflow-hidden",
   bar: "w-20 min-w-16 text-center @max-3xl:w-[10%] @max-3xl:min-w-0 @max-sm:w-[11%] overflow-hidden",
   traffic: "w-28 min-w-22 text-center @max-3xl:w-[23%] @max-3xl:min-w-0 @max-sm:w-[23%] overflow-hidden",
 }
 
-type SortField = "name" | "uptime" | "load" | "speed" | "cpu" | "mem" | "disk" | "traffic"
+type SortField = "name" | "uptime" | "speed" | "cpu" | "mem" | "disk" | "traffic"
 type SortOrder = "asc" | "desc"
 
 function sortNodes(nodes: Node[], field: SortField | null, order: SortOrder): Node[] {
@@ -70,9 +70,6 @@ function sortNodes(nodes: Node[], field: SortField | null, order: SortOrder): No
         break
       case "uptime":
         res = (ma?.uptime ?? -1) - (mb?.uptime ?? -1)
-        break
-      case "load":
-        res = (ma?.load[0] ?? -1) - (mb?.load[0] ?? -1)
         break
       case "speed": {
         const sa = ma ? ma.net_rx + ma.net_tx : -1
@@ -142,7 +139,7 @@ function Row({ node }: { node: Node }) {
         </TableCell>
         <TableCell className={cn(COL.uptime, "tnum")}>{m ? duration(m.uptime) : "—"}</TableCell>
         <TableCell className={cn(COL.expiry, "tnum")}><Expiry node={node} /></TableCell>
-        <TableCell className={cn(COL.load, "tnum")}>{m ? m.load[0].toFixed(2) : "—"}</TableCell>
+        <TableCell className={cn(COL.connections, "tnum text-xs")}>{m ? `TCP ${m.tcp} · UDP ${m.udp}` : "—"}</TableCell>
         <TableCell className={COL.speed}>
           {m ? (
             <div className="inline-flex items-center justify-center text-xs @max-3xl:flex @max-3xl:flex-col @max-3xl:items-center @max-3xl:gap-0.5 @max-3xl:text-[9px] @max-3xl:leading-none">
@@ -282,7 +279,7 @@ export function ServerTable({ nodes }: { nodes: Node[] }) {
     ["os", "系统"],
     ["uptime", "在线", "uptime"],
     ["expiry", "到期"],
-    ["load", "负载", "load"],
+    ["connections", "连接数"],
     ["speed", <>网速<span className="@max-3xl:hidden"> ↓|↑</span></>, "speed"],
     ["bar", "CPU", "cpu"],
     ["bar", "内存", "mem"],
@@ -494,7 +491,7 @@ export function ServerTableSkeleton() {
               <Skeleton className="h-4 w-20 shrink-0 @max-5xl:hidden" />
               <Skeleton className="h-4 w-16 shrink-0 @max-3xl:hidden" />
               <Skeleton className="h-4 w-16 shrink-0 @max-5xl:hidden" />
-              <Skeleton className="h-4 w-12 shrink-0 @max-3xl:hidden" />
+              <Skeleton className="h-4 w-32 shrink-0 @max-3xl:hidden" />
               <Skeleton className="h-4 w-24 shrink-0 @max-3xl:w-12" />
               <Skeleton className="h-2 w-16 shrink-0" />
               <Skeleton className="h-2 w-16 shrink-0" />
