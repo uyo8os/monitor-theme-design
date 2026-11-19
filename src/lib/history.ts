@@ -12,6 +12,8 @@ export type Point = {
   disk_used: number
   net_rx: number
   net_tx: number
+  tcp?: number
+  udp?: number
 }
 
 // `latency` is the bucket's median round trip, null when every probe in it timed

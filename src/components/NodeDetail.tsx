@@ -13,7 +13,7 @@ import type { Node } from "@/lib/api"
 import {
   axisBytes, axisTop, bytes, clockFor, despike, ewma, quarters, rate, timeTicks, uptime,
 } from "@/lib/format"
-import { fetchHistory, inRanges, LATENCY_HOURS, RANGES, type History, type Point, type Series } from "@/lib/history"
+import { fetchHistory, inRanges, LATENCY_HOURS, RANGES, type History, type Series } from "@/lib/history"
 import { knownPing, recordPing } from "@/lib/pings"
 import { usePref } from "@/lib/prefs"
 import { cn } from "@/lib/utils"
@@ -492,6 +492,7 @@ const CHARTS = [
   { key: "mem", label: "内存" },
   { key: "net", label: "网络" },
   { key: "disk", label: "硬盘" },
+  { key: "connections", label: "连接数" },
   { key: "ping", label: "延迟" },
 ]
 
@@ -516,17 +517,17 @@ export function NodeDetail({ node }: { node: Node }) {
   const away = node.last_seen ? Date.now() / 1000 - node.last_seen : 0
 
   // The hub answers in seconds; the time axis requires milliseconds.
-  const metricRows = useMemo(
-    () => (data?.metrics ?? []).map((m) => ({ ...m, ts: m.ts * 1_000 })),
-    [data],
-  )
+  const metricRows = useMemo(() => {
+    const count = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null
+    return (data?.metrics ?? []).map((m) => ({ ...m, ts: m.ts * 1_000, tcp: count(m.tcp), udp: count(m.udp) }))
+  }, [data])
 
   // Axis tops for the two panels with no capacity to measure against. CPU and a
   // transfer rate do not express fullness: against a fixed 0-100, a machine
   // sitting at 0.4% draws as a line along the panel's floor. Memory and disk keep
   // their totals as tops, where fullness is the entire question.
   const tops = useMemo(() => {
-    const max = (pick: (m: Point) => number) =>
+    const max = (pick: (m: typeof metricRows[number]) => number) =>
       metricRows.reduce((hi, m) => Math.max(hi, pick(m)), 0)
     return {
       // A floor of 4%, or a machine that never exceeds 0.4% would get an axis of
@@ -534,6 +535,7 @@ export function NodeDetail({ node }: { node: Node }) {
       cpu: axisTop(max((m) => m.cpu), 4, 10, 100),
       // Base 1024, so the steps are round in the unit `axisBytes` prints.
       rate: axisTop(max((m) => Math.max(m.net_rx, m.net_tx)), 1024, 1024),
+      connections: Math.ceil(axisTop(max((m) => Math.max(m.tcp ?? 0, m.udp ?? 0)), 4) / 4) * 4,
     }
   }, [metricRows])
 
@@ -583,6 +585,8 @@ export function NodeDetail({ node }: { node: Node }) {
         <Failed message={failed} retry={retry} />
       ) : data.metrics.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">这段时间没有历史数据</p>
+      ) : chart === "connections" && !metricRows.some((row) => row.tcp !== null || row.udp !== null) ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">这段时间没有连接数历史数据</p>
       ) : (
         // Faded while the next window is in flight, as the latency chart is.
         <div className={cn("min-w-0 transition-opacity", loading && "opacity-50")}>
@@ -635,6 +639,27 @@ export function NodeDetail({ node }: { node: Node }) {
                   <Tooltip labelFormatter={label} formatter={(v) => rate(Number(v))} contentStyle={TIP} />
                   <Line dataKey="net_rx" name="下行" stroke="var(--color-chart-2)" {...SERIES} />
                   <Line dataKey="net_tx" name="上行" stroke="var(--color-chart-3)" {...SERIES} />
+                </LineChart>
+              </ResponsiveContainer>
+            </Panel>
+          ) : chart === "connections" ? (
+            <Panel
+              title={
+                <>
+                  连接数
+                  <span className="ml-3 text-chart-2">● TCP</span>
+                  <span className="ml-2 text-chart-3">● UDP</span>
+                </>
+              }
+            >
+              <ResponsiveContainer>
+                <LineChart data={metricRows}>
+                  <CartesianGrid className="stroke-border" vertical={false} />
+                  <XAxis {...timeAxis(metricRows, hours)} />
+                  <YAxis domain={[0, tops.connections]} ticks={quarters(tops.connections)} width={Y_WIDTH} {...AXIS} />
+                  <Tooltip labelFormatter={label} contentStyle={TIP} />
+                  <Line dataKey="tcp" name="TCP" stroke="var(--color-chart-2)" {...SERIES} />
+                  <Line dataKey="udp" name="UDP" stroke="var(--color-chart-3)" {...SERIES} />
                 </LineChart>
               </ResponsiveContainer>
             </Panel>
